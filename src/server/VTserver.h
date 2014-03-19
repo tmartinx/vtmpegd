@@ -83,7 +83,7 @@ extern inline void thread_lock (void);
 extern inline void thread_unlock (void);
 
 /* copyright.c */
-#define        PROGRAM_DESCRIPTION "oO UNNAMED - MPEG video player daemon for Linux Oo"
+#define        PROGRAM_DESCRIPTION "oO VTmpeg - MPEG video player daemon for Linux Oo"
 #define        PROGRAM_AUTHORS     "  Alexandre Fiori - <fiorix@gmail.com>\n" \
                                    "  Arnaldo Pereira - <egghunt@gmail.com>\n"
 extern        void show_copyright (void);

@@ -40,7 +40,7 @@ int videoloop(void *data)
         usleep(1000000);
         video_play(mpeg->filename);
     }
-    fprintf(stdout, "videoloop(): Tick timer: %3.2f\n", ecore_time_get());
+    //fprintf(stdout, "videoloop(): Tick timer: %3.2f\n", ecore_time_get());
     return 1;
 }
 

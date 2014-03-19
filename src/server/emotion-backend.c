@@ -279,7 +279,7 @@ int video_init(char *display, char *win_title, int width, int height, int fs)
     emotion_object_smooth_scale_set(v, 1);
     evas_object_show(v);
 
-    pp_init("testdata/teste.avi");
+    pp_init("testdata/pjflipeindhoven.mpg");
 
     /* callbacks */
     evas_object_event_callback_add(v, EVAS_CALLBACK_KEY_DOWN,    cb_keydown,    NULL);
