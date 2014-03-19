@@ -36,11 +36,19 @@ static void go_background ()
 
 int videoloop(VTmpeg *mpeg)
 {
+    int r = 0;
+    do {
+        thread_lock();
+        r = md_gst_is_playing();
+        thread_unlock();
+        usleep(400000);
+    } while(r);
+
     if ((mpeg = unix_getvideo ()) != NULL) {
-        g_printerr("VIDEO : %s\n", mpeg->filename);
-        md_gst_play_loop(mpeg->filename);
+        g_printerr("Now playing: %s\n", mpeg->filename);
+        md_gst_play(mpeg->filename);
+        //md_gst_play_loop(mpeg->filename);
     }
-    g_printerr("h0h0\n\n");
     return 1;
 }
 
@@ -56,7 +64,7 @@ int main (int argc, char **argv)
     gtk_window_set_title(GTK_WINDOW(win), "Video Daemon");
     gtk_window_set_decorated(GTK_WINDOW(win), FALSE);
     g_signal_connect(G_OBJECT(win), "delete_event", G_CALLBACK(finish), NULL);
-    gtk_widget_set_size_request(GTK_WIDGET(win), 640, 480);
+    gtk_widget_set_size_request(GTK_WIDGET(win), 720, 480);
     gtk_window_move(GTK_WINDOW(win), 0, 0);
     gtk_widget_show(win);
 
@@ -90,9 +98,6 @@ int main (int argc, char **argv)
     /* pra deixar o programa mais 'verboso', como diz
        o zoado do thiago */
     show_copyright ();
-    //g_print("Audio: %dHz stereo\n", MIX_DEFAULT_FREQUENCY);
-    g_print("Video: %dx%d depth %d (DoubleBuffer)\n",
-            VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_DEPTH);
 
     /* vai pra background */
     //go_background ();

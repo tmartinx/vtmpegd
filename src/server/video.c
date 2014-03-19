@@ -40,17 +40,16 @@ static void gst_player_video_size_request (GtkWidget *widget,
 static void cb_preferred_video_size (GtkWidget *widget,
         GtkRequisition *req,
         gpointer data);
+static void cb_state_change (GstElement *element, 
+        GstElementState old_state, 
+        GstElementState new_state, 
+        gpointer data);
 static void gst_player_video_size_allocate (GtkWidget *widget,
         GtkAllocation *alloc);
 static gboolean gst_player_video_expose (GtkWidget *widget,
         GdkEventExpose *event);
 static void gst_player_video_draw (GstPlayerVideo *video,
         gboolean on);
-
-static void cb_state_change (GstElement *element,
-        GstElementState old_state,
-        GstElementState new_state,
-        gpointer data);
 
 static GtkWidgetClass *parent_class = NULL;
 
@@ -138,7 +137,7 @@ gst_player_video_new (GstElement *element,
 
         gst_object_ref (GST_OBJECT (video->element));
         gst_object_ref (GST_OBJECT (video->play));
-        video->id = g_signal_connect (play, "state-change",
+        video->id = g_signal_connect (play, "state-change", 
                 G_CALLBACK (cb_state_change), video);
     }
 
@@ -455,7 +454,7 @@ cb_caps_set (GObject *obj,
     g_idle_add (idle_desired_size, video);
 }
 
-    static void
+    void
 cb_state_change (GstElement *element,
         GstElementState old_state,
         GstElementState new_state,

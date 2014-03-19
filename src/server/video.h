@@ -29,37 +29,38 @@
 
 G_BEGIN_DECLS
 #define GST_PLAYER_TYPE_VIDEO \
-  (gst_player_video_get_type ())
+    (gst_player_video_get_type ())
 #define GST_PLAYER_VIDEO(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST ((obj), GST_PLAYER_TYPE_VIDEO, GstPlayerVideo))
+    (G_TYPE_CHECK_INSTANCE_CAST ((obj), GST_PLAYER_TYPE_VIDEO, GstPlayerVideo))
 #define GST_PLAYER_VIDEO_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST ((klass), GST_PLAYER_TYPE_VIDEO, GstPlayerVideoClass))
+    (G_TYPE_CHECK_CLASS_CAST ((klass), GST_PLAYER_TYPE_VIDEO, GstPlayerVideoClass))
 #define GST_PLAYER_IS_VIDEO(obj) \
-  (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GST_PLAYER_TYPE_VIDEO))
+    (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GST_PLAYER_TYPE_VIDEO))
 #define GST_PLAYER_IS_VIDEO_CLASS(obj) \
-  (G_TYPE_CHECK_CLASS_TYPE ((klass), GST_PLAYER_TYPE_VIDEO))
+    (G_TYPE_CHECK_CLASS_TYPE ((klass), GST_PLAYER_TYPE_VIDEO))
 #define GST_PLAYER_VIDEO_GET_CLASS(obj) \
-  (G_TYPE_INSTANCE_GET_CLASS ((obj), GST_PLAYER_TYPE_VIDEO, GstPlayerVideoClass))
-  typedef struct _GstPlayerVideo
-{
-  GtkWidget widget;
+    (G_TYPE_INSTANCE_GET_CLASS ((obj), GST_PLAYER_TYPE_VIDEO, GstPlayerVideoClass))
 
-  /* video overlay element */
-  GstElement *element, *play;
-  gulong id, id2;
-  gint width, height;
-  GdkWindow *full_window, *video_window;
+typedef struct _GstPlayerVideo
+{
+    GtkWidget widget;
+
+    /* video overlay element */
+    GstElement *element, *play;
+    gulong id, id2;
+    gint width, height;
+    GdkWindow *full_window, *video_window;
 } GstPlayerVideo;
 
 typedef struct _GstPlayerVideoClass
 {
-  GtkWidgetClass klass;
+    GtkWidgetClass klass;
 
-  GdkPixbuf *logo;
+    GdkPixbuf *logo;
 } GstPlayerVideoClass;
 
 GType gst_player_video_get_type (void);
-GtkWidget *gst_player_video_new (GstElement * element, GstElement * play);
+GtkWidget *gst_player_video_new (GstElement *element, GstElement *play);
 void gst_player_video_default_size (GstPlayerVideo * video);
 
 G_END_DECLS

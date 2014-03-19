@@ -11,14 +11,14 @@
 /* leia /usr/include/features.h */
 #define _GNU_SOURCE 1
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 #include <glib.h>
 #include <time.h>
 #include <errno.h>
-#include <stdio.h>
 #include <fcntl.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <signal.h>
 #include <sys/un.h>
 #include <pthread.h>
