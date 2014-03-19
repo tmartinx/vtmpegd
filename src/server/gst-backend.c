@@ -47,6 +47,41 @@ gint md_gst_finish(void)
     return 0;
 }
 
+/*
+ * Calls gst-register-0.8
+ *
+ * I know glib already has its own pipes API,
+ * but I don't care, as I trust POSIX.
+ */
+static int md_gst_register(void)
+{
+	gchar  cmd[] = "/usr/bin/gst-register-0.8";
+	gchar  buffer[512];
+	FILE *fp;
+
+	g_printerr("Assuming gst-register-0.8 to be on /usr/bin, which is the default on "
+			"Debian systems\n");
+
+	if((fp = popen(cmd, "r")) == NULL) {
+		g_printerr("popen() failed: %s\n", strerror(errno));
+		return 1;
+	}
+
+	/* read from pipe until reach EOF */
+	while(!feof(fp)) {
+		memset(&buffer, 0, sizeof (buffer));
+		fgets(buffer, sizeof (buffer), fp);
+		if((strncmp(buffer, "Loaded", 6)) == 0) {
+			g_printerr("Successfully registered the available plugins.\n");
+			g_printerr("%s\n", buffer);
+		}
+	}
+
+	/* close pipe fd */
+	pclose(fp);
+	return 0;
+}
+
 /* XXX remember to g_object_unref() what must be freed XXX */
 gint md_gst_init(gint argc, gchar **argv, GtkWidget *win)
 {
@@ -61,6 +96,18 @@ gint md_gst_init(gint argc, gchar **argv, GtkWidget *win)
 
     /* set up */
     play = gst_element_factory_make ("playbin", "play");
+    if(!GST_IS_ELEMENT(play)) {
+	    g_printerr("gst_element_factory_make() failed, you probably don't have runned "
+			    "gst-register-0.8 yet.\n"
+			    "I'm going to try it for you.\n");
+	    if(md_gst_register()) {
+		    g_printerr("Sorry, it didn't work out. Please check your gstreamer installation.\n");
+		    gst_main_quit();
+		    return -1;
+	    } else {
+		    return 1;
+	    }
+    }
     g_signal_connect (play, "eos", G_CALLBACK (cb_eos), NULL);
     g_signal_connect (play, "error", G_CALLBACK (cb_error), NULL);
 

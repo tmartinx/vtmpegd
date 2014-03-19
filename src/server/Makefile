@@ -9,7 +9,7 @@ CFLAGS = -Wall -O2 -I../include 										\
         -DGDK_DISABLE_DEPRECATED        								\
 		-DGDK_PIXBUF_DISABLE_DEPRECATED 								\
 		-DGTK_DISABLE_DEPRECATED	    								\
-		-DDATA_DIR=\"../../\"
+		-DDATA_DIR=\"../../\" -g
 
 LIBS = `pkg-config --libs gtk+-2.0 gstreamer-0.8 gdk-pixbuf-2.0` -lgstinterfaces-0.8
 

@@ -56,7 +56,7 @@ int main (int argc, char **argv)
     gtk_window_set_title(GTK_WINDOW(win), "Video Daemon");
     gtk_window_set_decorated(GTK_WINDOW(win), FALSE);
     g_signal_connect(G_OBJECT(win), "delete_event", G_CALLBACK(finish), NULL);
-    gtk_widget_set_size_request(GTK_WIDGET(win), 1024, 768);
+    gtk_widget_set_size_request(GTK_WIDGET(win), 640, 480);
     gtk_window_move(GTK_WINDOW(win), 0, 0);
     gtk_widget_show(win);
 
@@ -65,6 +65,15 @@ int main (int argc, char **argv)
         g_printerr("md_gst_play() failed, aborting.\n");
         gtk_widget_destroy(GTK_WIDGET(win));
         exit(EXIT_SUCCESS);
+
+	/* try it once again */
+    } else if(r == 1) {
+    	r = md_gst_init(argc, argv, win);
+	if(r < 0) {
+		g_printerr("md_gst_play() failed, aborting.\n");
+		gtk_widget_destroy(GTK_WIDGET(win));
+		exit(EXIT_SUCCESS);
+	}
     }
 
     g_print("Video PAUSED. Waiting 1 second... ");

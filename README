@@ -10,6 +10,9 @@ REQUIREMENTS TO BUILD
 
 gstreamer 0.8 and gtk 2 development libraries.
 
+Packages on Debian:
+libgtk2.0-dev libglib2.0-dev libgstreamer0.8-dev libgstreamer-plugins0.8-dev
+
 REQUIREMENTS TO RUN
 
 gtk 2 and gstreamer runtime libraries.
