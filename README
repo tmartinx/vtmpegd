@@ -1,10 +1,13 @@
 WHAT IS IT ?
 
-    A rewrite of the video engine of VTmpeg, a software which plays videos from a queue, from the former Void Technologies.
+    A rewrite of the video engine of VTmpeg, a software which plays videos from
+ a queue, from the former Void Technologies.
     VTmpeg is divided in two parts:
 
-        VTserver: Creates a window on the display, a UNIX domain socket server and waits for commands.
-        VTclient: Connects on VTserver and send commands for managing VTserver queue and state.
+        VTserver: Creates a window on the display, a UNIX domain socket server
+ and waits for commands.
+        VTclient: Connects on VTserver and send commands for managing VTserver
+ queue and state.
 
 REQUIREMENTS TO BUILD
 
@@ -18,4 +21,6 @@ REQUIREMENTS TO RUN
 
 LICENSE
 
-    This program is Free Software, licensed under the LGPL. Please read lgpl.txt.
+    This program is Free Software, licensed under the LGPL.
+    Please read lgpl.txt.
+

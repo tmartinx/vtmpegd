@@ -5,7 +5,7 @@ NAME = VTserver
 
 CFLAGS = -Wall -O2 -I../include                           \
 		 `evas-config --cflags` `emotion-config --cflags`
-LDFLAGS = `evas-config --libs` `emotion-config --libs`
+LDFLAGS = `evas-config --libs` `emotion-config --libs` -lpthread
 
 OBJECTS = VTserver.o unix.o commands.o thread.o emotion-backend.o
 
