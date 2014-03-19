@@ -25,8 +25,16 @@ Evas        *evas;
 Evas_Object *bg;
 Evas_Object *text;
 Evas_Object *v;
+Evas_Object *vv = NULL;
 Evas_Object *rect = NULL;
 Evas_Object *img  = NULL;
+
+static int pp_width = 300;
+static int pp_height = 150;
+
+static int pp_watch(void *data);
+static int pp_init(char *uri);
+static void pp_play();
 
 static void rest_image_show(char *image)
 {
@@ -45,45 +53,6 @@ static void rest_image_show(char *image)
 }
 
 static void rest_image_hide(void) { evas_object_hide(img); }
-
-static int pp_watch(void *data)
-{
-    Evas_Object *vv = data;
-
-    if(!emotion_object_play_get(vv)) {
-        evas_object_del(vv);
-        return 0;
-    }
-    return 1;
-}
-
-/* picture in picture test */
-static void pp_play(char *uri)
-{
-    int r;
-    Evas_Object *vv = NULL;
-
-    if(!uri)
-        return;
-
-    vv = emotion_object_add(evas);
-    r = emotion_object_init(vv, "emotion_decoder_xine.so");
-    if(!r) {
-        fprintf(stderr, "emotion_object_init() failed.\n");
-        exit(EXIT_FAILURE);
-    }
-    evas_object_move(vv, 860, 20);
-    emotion_object_play_set(vv, 0);
-    emotion_object_file_set(vv, uri);
-    evas_object_resize(vv, 100, 60);
-    evas_object_name_set(vv, "ppvideo");
-    emotion_object_smooth_scale_set(vv, 1);
-    emotion_object_play_set(vv, 1);
-    rest_image_hide();
-    evas_object_show(vv);
-
-    ecore_timer_add(0.5, pp_watch, vv);
-}
 
 static void draw_dummy_rect(void)
 {
@@ -116,6 +85,28 @@ static void draw_dummy_rect(void)
         printf("TEXT\n\n");
     }
 #endif
+}
+
+static void cb_pp_mousewheel(void *data, Evas *e, Evas_Object *obj, void *event_info)
+{
+    Evas_Event_Mouse_Wheel *ev;
+    int w, h;
+
+    evas_object_geometry_get(obj, NULL, NULL, &w, &h);
+
+    ev = (Evas_Event_Mouse_Wheel *) event_info;
+    /* down */
+    if(ev->z < 0) {
+        w -= 5;
+        h -= 5;
+        evas_object_resize(obj, w, h);
+
+        /* up */
+    } else {
+        w += 5;
+        h += 5;
+        evas_object_resize(obj, w, h);
+    }
 }
 
 static void cb_mousewheel(void *data, Evas *e, Evas_Object *obj, void *event_info)
@@ -171,6 +162,21 @@ static int fade_out(void *data)
     return 1;
 }
 
+static void pp_make_transparent(void)
+{
+    static int s = 0;
+
+    if(!vv)
+        return;
+
+    if(s)
+        evas_object_color_set(vv, 255, 255, 255, 255);
+    else
+        evas_object_color_set(vv, 255, 255, 255, 128);
+
+    s = !s;
+}
+
 static void cb_keydown(void *data, Evas *e, Evas_Object *obj, void *event_info)
 {
     Evas_Event_Key_Down *ev;
@@ -186,7 +192,9 @@ static void cb_keydown(void *data, Evas *e, Evas_Object *obj, void *event_info)
     } else if(!strcmp(ev->keyname, "a")) {
         draw_dummy_rect();
     } else if(!strcmp(ev->keyname, "p")) {
-        pp_play("testdata/pjflipeindhoven.mpg");
+        pp_play();
+    } else if(!strcmp(ev->keyname, "e")) {
+        pp_make_transparent();
     } else if(!strcmp(ev->keyname, "s")) { 
         ecore_timer_add(0.5, fade_in, NULL);
     } else if(!strcmp(ev->keyname, "d")) {
@@ -271,6 +279,8 @@ int video_init(char *display, char *win_title, int width, int height, int fs)
     emotion_object_smooth_scale_set(v, 1);
     evas_object_show(v);
 
+    pp_init("testdata/teste.avi");
+
     /* callbacks */
     evas_object_event_callback_add(v, EVAS_CALLBACK_KEY_DOWN,    cb_keydown,    NULL);
     evas_object_event_callback_add(v, EVAS_CALLBACK_MOUSE_UP,    cb_mouseup,    NULL);
@@ -301,4 +311,56 @@ void video_close(void)
     ecore_evas_shutdown();
     ecore_shutdown();
     evas_shutdown();
+}
+
+static int pp_watch(void *data)
+{
+    Evas_Object *vv = data;
+
+    if(!emotion_object_play_get(vv)) {
+        evas_object_hide(vv);
+        emotion_object_position_set(vv, 0.0);
+        return 0;
+    }
+    return 1;
+}
+
+static int pp_init(char *uri)
+{
+    int r;
+
+    if(!uri)
+        return -1;
+
+    vv = emotion_object_add(evas);
+    r = emotion_object_init(vv, "emotion_decoder_xine.so");
+    if(!r) {
+        fprintf(stderr, "emotion_object_init() failed.\n");
+        exit(EXIT_FAILURE);
+    }
+    evas_object_move(vv, 200, 40);
+    emotion_object_play_set(vv, 0);
+    emotion_object_file_set(vv, uri);
+    evas_object_resize(vv, pp_width, pp_height);
+    evas_object_name_set(vv, "ppvideo");
+    emotion_object_smooth_scale_set(vv, 1);
+    emotion_object_play_set(vv, 0);
+    //rest_image_hide();
+
+    evas_object_event_callback_add(vv, EVAS_CALLBACK_MOUSE_WHEEL, cb_pp_mousewheel, NULL);
+
+    return 0;
+}
+
+/* picture in picture test */
+static void pp_play()
+{
+    if(emotion_object_play_get(vv)) {
+        evas_object_hide(vv);
+        emotion_object_play_set(vv, 0);
+        return;
+    }
+    evas_object_show(vv);
+    emotion_object_play_set(vv, 1);
+    ecore_timer_add(0.5, pp_watch, vv);
 }

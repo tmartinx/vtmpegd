@@ -35,12 +35,12 @@ void show_copyright(void)
 int videoloop(void *data)
 {
     VTmpeg *mpeg = data;
-    if((mpeg = unix_getvideo()) != NULL && !video_is_playing()) {
+    if(!video_is_playing() && (mpeg = unix_getvideo()) != NULL) {
         video_stop();
         usleep(1000000);
         video_play(mpeg->filename);
     }
-    //fprintf(stdout, "videoloop(): Tick timer: %3.2f\n", ecore_time_get());
+    fprintf(stdout, "videoloop(): Tick timer: %3.2f\n", ecore_time_get());
     return 1;
 }
 
@@ -59,7 +59,7 @@ int main(int argc, char **argv)
        o zoado do thiago */
     show_copyright();
 
-    r = video_init(NULL, PROGRAM_DESCRIPTION, 1024, 768, 1);
+    r = video_init(NULL, PROGRAM_DESCRIPTION, 720, 480, 0);
     if(r < 0) {
         fprintf(stderr, "video_init() failed, aborting.\n");
         finish();

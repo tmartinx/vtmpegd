@@ -168,7 +168,8 @@ void unix_client(int fd)
     Evas_List *q       = NULL;
     int        pos     = 0;
     char       temp[2048];
-    char       filename[1024];
+    char       filename[1024], *p;
+    int        i;
 
     memset(temp, 0, sizeof(temp));
     if(read(fd, temp, sizeof(temp)) < 0) return;
@@ -180,7 +181,15 @@ void unix_client(int fd)
 
         case COMMAND_INSERT:
             memset(filename, 0, sizeof(filename));
-            sscanf(temp + 2, "%[^];];%d\n", filename, &pos);
+
+            for(p = filename, i = 0; 
+                    temp[i + 2] != ';' && i < sizeof(filename); 
+                    i++, p++) {
+                *p = temp[i + 2];
+            }
+            *p = 0;
+            if((p = strrchr(temp, ';')))
+                pos = atol(++p);
 
             printf("%d -- %s\n\n", pos, filename);
             q = command_insert(fd, queue, filename,

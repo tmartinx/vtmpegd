@@ -11,7 +11,7 @@
    entre o client e o server */
 #define MAX_COMMAND_LEN 20
 
-/* tamannho maximo da msg de result
+/* tamanho maximo da msg de result
    do servidor */
 #define MAX_RESULT_LINE_LEN 2048
 
