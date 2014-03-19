@@ -167,7 +167,6 @@ void unix_client(int fd)
 {
     Evas_List *q       = NULL;
     int        pos     = 0;
-    int        pos_aux = 0;
     char       temp[2048];
     char       filename[1024];
 
