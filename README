@@ -1,0 +1,16 @@
+WHAT
+
+A rewrite of the video engine of VTmpeg, a software which plays videos from a queue, from the former Void Technologies.
+VTmpeg is divided in two parts:
+
+    VTserver: Creates a window on the display, a UNIX domain socket server and waits for commands.
+    VTclient: Connects on VTserver and send commands for managing VTserver queue and state.
+
+REQUIREMENTS TO BUILD
+
+gstreamer 0.8 and gtk 2 development libraries.
+
+REQUIREMENTS TO RUN
+
+gtk 2 and gstreamer runtime libraries.
+
