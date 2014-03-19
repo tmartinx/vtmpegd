@@ -1,0 +1,6 @@
+03/05/2006 - Arnaldo
+
+Maybe the right way of doing this is by creating a library on top of emotion and evas, which will be used to build all necessary applications in easy steps.
+
+Once the library is done, I'm pretty sure even Thiago will be able to build an application with it.
+

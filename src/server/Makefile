@@ -3,17 +3,11 @@ RM = rm -f
 
 NAME = VTserver
 
-CFLAGS = -Wall -O2 -I../include 										\
-		`pkg-config --cflags gtk+-2.0 gstreamer-0.8 gdk-pixbuf-2.0`  	\
-		-DG_DISABLE_DEPRECATED          								\
-        -DGDK_DISABLE_DEPRECATED        								\
-		-DGDK_PIXBUF_DISABLE_DEPRECATED 								\
-		-DGTK_DISABLE_DEPRECATED	    								\
-		-DDATA_DIR=\"../../\" -g
+CFLAGS = -Wall -O2 -I../include                           \
+		 `evas-config --cflags` `emotion-config --cflags`
+LDFLAGS = `evas-config --libs` `emotion-config --libs`
 
-LIBS = `pkg-config --libs gtk+-2.0 gstreamer-0.8 gdk-pixbuf-2.0` -lgstinterfaces-0.8
-
-OBJECTS = VTserver.o unix.o commands.o thread.o gst-backend.o video.o
+OBJECTS = VTserver.o unix.o commands.o thread.o emotion-backend.o
 
 .SUFFIXES: .c
 .c.o:
@@ -22,7 +16,7 @@ OBJECTS = VTserver.o unix.o commands.o thread.o gst-backend.o video.o
 all: $(NAME)
 
 $(NAME): $(OBJECTS)
-	$(CC) $(CFLAGS) -o $(NAME) $(OBJECTS) $(LIBS)
+	$(CC) $(CFLAGS) -o $(NAME) $(OBJECTS) $(LDFLAGS)
 
 clean:
 	$(RM) $(NAME) $(OBJECTS)

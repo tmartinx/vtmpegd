@@ -1,19 +1,21 @@
-WHAT
+WHAT IS IT ?
 
-A rewrite of the video engine of VTmpeg, a software which plays videos from a queue, from the former Void Technologies.
-VTmpeg is divided in two parts:
+    A rewrite of the video engine of VTmpeg, a software which plays videos from a queue, from the former Void Technologies.
+    VTmpeg is divided in two parts:
 
-    VTserver: Creates a window on the display, a UNIX domain socket server and waits for commands.
-    VTclient: Connects on VTserver and send commands for managing VTserver queue and state.
+        VTserver: Creates a window on the display, a UNIX domain socket server and waits for commands.
+        VTclient: Connects on VTserver and send commands for managing VTserver queue and state.
 
 REQUIREMENTS TO BUILD
 
-gstreamer 0.8 and gtk 2 development libraries.
-
-Packages on Debian:
-libgtk2.0-dev libglib2.0-dev libgstreamer0.8-dev libgstreamer-plugins0.8-dev
+    libemotion, libevas and all its dependencies.
+    Packages on Debian systems: libemotion0-dev and libevas0-dev 
 
 REQUIREMENTS TO RUN
 
-gtk 2 and gstreamer runtime libraries.
+    libemotion and libevas
+    Packages on Debian systems: libemotion0 and libevas0
 
+LICENSE
+
+    This program is Free Software, licensed under the LGPL. Please read lgpl.txt.

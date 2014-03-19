@@ -1,162 +1,117 @@
 /*
  * $Id: main.c,v 1.26 2001/11/13 18:31:33 alex Exp $
  *
- * (C) 2001 Void Technologies
- * Author: Alex Fiori <alex@void.com.br>
+ * Copyright (C) 2001 Void Technologies
+ * Copyright (C) 2005,2006 Alexandre Fiori and Arnaldo Pereira
+ *
+ * VTmpeg2 is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * VTmpeg2 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ *
  */
 
 #include "VTserver.h"
 
 static void finish  (void);
 static void sfinish (int sig);
-static int already_finished = 0;
+static int  already_finished = 0;
 
 void show_copyright(void)
 {
-    g_printerr(PROGRAM_DESCRIPTION "\n");
-    g_printerr(PROGRAM_AUTHORS "\n");
+    fprintf(stderr, PROGRAM_DESCRIPTION "\n");
+    fprintf(stderr, PROGRAM_AUTHORS "\n");
 }
 
-/* roda como daemon */
-static void go_background ()
+int videoloop(void *data)
 {
-    switch (fork ()) {
-        case -1:
-            g_printerr("fork(): %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
-            break;
-        case 0:
-            break;
-        default:
-            _exit (1);
+    VTmpeg *mpeg = data;
+    if((mpeg = unix_getvideo()) != NULL && !video_is_playing()) {
+        video_stop();
+        usleep(1000000);
+        video_play(mpeg->filename);
     }
-
-    return;
-}
-
-int videoloop(VTmpeg *mpeg)
-{
-    int r = 0;
-    do {
-        thread_lock();
-        r = md_gst_is_playing();
-        thread_unlock();
-        usleep(400000);
-    } while(r);
-
-    if ((mpeg = unix_getvideo ()) != NULL) {
-        g_printerr("Now playing: %s\n", mpeg->filename);
-        md_gst_play(mpeg->filename);
-        //md_gst_play_loop(mpeg->filename);
-    }
+    //fprintf(stdout, "videoloop(): Tick timer: %3.2f\n", ecore_time_get());
     return 1;
 }
 
-int main (int argc, char **argv)
+int main(int argc, char **argv)
 {
     VTmpeg *mpeg = NULL;
-    GtkWidget *win;
-    gint r;
+    int r;
 
-    gtk_init(&argc, &argv);
-
-    win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(win), "Video Daemon");
-    gtk_window_set_decorated(GTK_WINDOW(win), FALSE);
-    g_signal_connect(G_OBJECT(win), "delete_event", G_CALLBACK(finish), NULL);
-    gtk_widget_set_size_request(GTK_WIDGET(win), 720, 480);
-    gtk_window_move(GTK_WINDOW(win), 0, 0);
-    gtk_widget_show(win);
-
-    r = md_gst_init(argc, argv, win);
-    if(r < 0) {
-        g_printerr("md_gst_play() failed, aborting.\n");
-        gtk_widget_destroy(GTK_WIDGET(win));
-        exit(EXIT_SUCCESS);
-
-	/* try it once again */
-    } else if(r == 1) {
-    	r = md_gst_init(argc, argv, win);
-	if(r < 0) {
-		g_printerr("md_gst_play() failed, aborting.\n");
-		gtk_widget_destroy(GTK_WIDGET(win));
-		exit(EXIT_SUCCESS);
-	}
-    }
-
-    g_print("Video PAUSED. Waiting 1 second... ");
-    sleep(1);
-    g_print("now playing.\n");
-    //md_gst_play();
-
-    signal (SIGINT,  sfinish);
-    signal (SIGTERM, sfinish);
-    signal (SIGSEGV, sfinish);
-    signal (SIGHUP,  SIG_IGN);
-    signal (SIGPIPE, SIG_IGN);
+    signal(SIGINT,  sfinish);
+    signal(SIGTERM, sfinish);
+    signal(SIGSEGV, sfinish);
+    signal(SIGHUP,  SIG_IGN);
+    signal(SIGPIPE, SIG_IGN);
 
     /* pra deixar o programa mais 'verboso', como diz
        o zoado do thiago */
-    show_copyright ();
+    show_copyright();
 
-    /* vai pra background */
-    //go_background ();
-    //daemon(0, 0); FIXME: can't run properly going to background
+    r = video_init(NULL, PROGRAM_DESCRIPTION, 1024, 768, 1);
+    if(r < 0) {
+        fprintf(stderr, "video_init() failed, aborting.\n");
+        finish();
+    }
+
+    /* daemonize */
+    //daemon(0, 0);
 
     /* cria o server de unix domain sockets */
-    if (!unix_server ()) {
-        fprintf (stderr, "VTmpegd: Cannot create the server.\n");
+    if(!unix_server()) {
+        fprintf(stderr, "VTmpegd: Cannot create the server.\n");
         return 0;
     }
 
-    g_timeout_add(500, (GSourceFunc)videoloop, mpeg);
-    gtk_main();
+    ecore_timer_add(0.5, videoloop, mpeg);
 
-#if 0
-    /* o processo principal fica em um loop eterno, passando
-       os mpegs da lista no widget */
-    for (;;) {
-        if ((mpeg = unix_getvideo ()) != NULL) player_play (mpeg);
-        else sleep (1);
-    }
-#endif
+    /* start the main event loop */
+    ecore_main_loop_begin();
 
     return 1;
 }
 
 /* finaliza o processo */
-void finish (void) 
+void finish(void) 
 {
-    thread_lock ();
+    thread_lock();
 
     /* para não ser feito por todos
-       os processos (main e thread) */
-    if (already_finished) {
-        thread_unlock ();
-        exit (EXIT_SUCCESS);
+       os processos(main e thread) */
+    if(already_finished) {
+        thread_unlock();
+        exit(EXIT_SUCCESS);
     }
 
     /* se tiver algum video passando, da stop 
        e já limpa a lista */
-    unix_finish ();
+    unix_finish();
 
     /* remove o socket */
-    unlink (unix_sockname ());
+    unlink(unix_sockname());
 
-    g_printerr("Goodbye.\n");
+    fprintf(stderr, "Goodbye.\n");
     already_finished = 1;
 
-    thread_unlock ();
-
-    md_gst_finish();
-    gtk_main_quit();
-
+    thread_unlock();
+    video_close();
     exit(EXIT_SUCCESS);
 }
 
-void sfinish (int sig)
+void sfinish(int sig)
 {
-    fprintf (stderr, "VTmpegd: Received signal %d, exiting.\n", sig);
-    close (0); close (1); close (2);
-    finish ();
+    fprintf(stderr, "VTmpegd: Received signal %d, exiting.\n", sig);
+    close(0); close(1); close(2);
+    finish();
 }

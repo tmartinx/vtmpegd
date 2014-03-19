@@ -1,15 +1,20 @@
 /*
- * TODO - commands:
+ * Copyright (C) 2001 Void Technologies
+ * Copyright (C) 2005,2006 Alexandre Fiori and Arnaldo Pereira
  *
- * COMMAND_LIST    1
- * COMMAND_INSERT  2
- * COMMAND_REMOVE  3
- * COMMAND_PLAY    4
- * COMMAND_PAUSE   5
- * COMMAND_STOP    6
- * COMMAND_NEXT    7
- * COMMAND_PREV    8
- * COMMAND_MUTE    9
+ * VTmpeg2 is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * VTmpeg2 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
 
@@ -66,7 +71,7 @@ static int VT_send_command(VTCommand *cmd)
         exit(1);
     }
 
-    if(connect(fd, (struct sockaddr *) &s, sizeof(s)) < 0) {
+    if(connect(fd,(struct sockaddr *) &s, sizeof(s)) < 0) {
         perror("connect");
         exit(1);
     }
@@ -136,7 +141,7 @@ int main(int argc, char **argv)
             case 'p':
                 if(optarg == NULL)
                     show_help();
-                cmd.idx = atol(optarg);
+                cmd.idx = atol(optarg) - 1;
                 break;
             case 'l':
                 cmd.cmd = LIST;

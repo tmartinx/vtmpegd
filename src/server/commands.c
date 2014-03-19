@@ -1,130 +1,113 @@
 /*
  * $Id: commands.c,v 1.22 2001/11/13 02:44:54 alex Exp $
  *
- * (C) 2001 Void Technologies
- * Author: Alex Fiori <alex@void.com.br>
+ * Copyright (C) 2001 Void Technologies
+ * Copyright (C) 2005,2006 Alexandre Fiori and Arnaldo Pereira
+ *
+ * VTmpeg2 is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * VTmpeg2 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ *
  */
 
 #include "VTserver.h"
 
-void command_list (int fd, GList *queue, int playing_mpeg)
+void command_list(int fd, Evas_List *queue)
 {
-	int i = 0;
-	VTmpeg *mpeg;
-	char temp[128];
+    int        i    = 0;
+    VTmpeg    *mpeg = NULL;
+    Evas_List *l    = evas_list_nth_list(queue, 0);
+    int        t    = evas_list_count(queue);
 
-	if (queue == NULL) {
-		dprintf (fd, "%c\nEmpty list.\n%c\n",
-			 COMMAND_ERROR, COMMAND_DELIM);
-		return;
-	}
+    if(l == NULL) {
+        dprintf(fd, "%c\nEmpty list.\n%c\n",
+             COMMAND_ERROR, COMMAND_DELIM);
+        return;
+    }
 
-	memset (temp, 0, sizeof (temp));
+    dprintf(fd, "%c\n", COMMAND_OK);
+    dprintf(fd, "VTmpeg queue list\n");
 
-	dprintf (fd, "%c\n", COMMAND_OK);
-	dprintf (fd, "VTmpeg queue list\n");
+    for(; l; i++, l = evas_list_next(l)) {
+        mpeg =(VTmpeg *) l->data;
+        if(mpeg != NULL)
+            dprintf(fd, "%d%c%s\n", (i + 1), COMMAND_DELIM, mpeg->filename);
+    }
 
-	while (queue != NULL) {
-		mpeg = (VTmpeg *) queue->data;
-		if (mpeg != NULL) {
-			snprintf (temp, sizeof (temp), "- playing");
-
-			dprintf (fd, "%d%c%s%s\n",
-				 (i + 1), COMMAND_DELIM, mpeg->filename,
-				 (playing_mpeg - 1)==i ? temp : " ");
-		}
-		
-		queue = g_list_next (queue);
-		i++;
-	}
-
-	dprintf (fd, "%c\n", COMMAND_DELIM);
+    dprintf(fd, "%d video%s in queue.\n", t, t > 1 ? "s " : "");
+    dprintf(fd, "%c\n", COMMAND_DELIM);
 }
 
-GList *command_insert (int fd, GList *queue, const char *filename,
-		       int pos, int *playing_mpeg, int max_pos)
+Evas_List *command_insert(int fd, Evas_List *queue, const char *filename,
+               int pos, int max_pos)
 {
-	GList *q = queue;
-	VTmpeg *mpeg = (VTmpeg *) malloc (sizeof (VTmpeg));
+    Evas_List *q = queue;
+    VTmpeg *mpeg = (VTmpeg *) malloc(sizeof(VTmpeg));
 
-	if (pos > max_pos) pos = 0;
+    if(pos > max_pos) pos = 0;
 
-	/* nunca adiciona na posição que está sendo passada */
-	if (*playing_mpeg == pos) {
-		dprintf (fd, "%c\nPosition busy.\n%c\n",
-			 COMMAND_ERROR, COMMAND_DELIM);
-		return NULL;
-	}
+    if(mpeg == NULL) {
+        dprintf(fd, "%c\nNo enough memory, aborting insertion.\n%c\n",
+             COMMAND_ERROR, COMMAND_DELIM);
+        return NULL;
+    
+    /* guarda o nome do filename */
+    } else {
+        memset(mpeg, 0, sizeof(VTmpeg));
+        strncpy(mpeg->filename, filename, sizeof(mpeg->filename));
+    }
 
-	if (mpeg == NULL) {
-		dprintf (fd, "%c\nNot enough memory, server shutting down.\n%c\n",
-			 COMMAND_ERROR, COMMAND_DELIM);
-		exit (1);
-	
-	/* guarda o nome do filename */
-	} else {
-		memset (mpeg, 0, sizeof (VTmpeg));
-		strncpy (mpeg->filename, filename, sizeof (mpeg->filename));
-	}
+    if(!pos)
+        q = evas_list_append(q, mpeg);
+    else {
+        void *relative = evas_list_nth(q, (pos - 1));
+        q = evas_list_append_relative(q, mpeg, relative);
+    }
 
-#if 0
-	/* testa o mpeg, sem audio */
-	mpeg->mpeg = SMPEG_new (filename, &mpeg->info, 0);
-	if ((error = SMPEG_error (mpeg->mpeg))) {
-		dprintf (fd, "%c\n%s\n%c\n", COMMAND_ERROR, error, COMMAND_DELIM);
-		return NULL;
-	}
-#endif
+    if(q == NULL) {
+        dprintf(fd, "%c\nCannot %s on the list.\n%c\n",
+             COMMAND_ERROR, !pos ? "append" : "insert", COMMAND_DELIM);
+        return NULL;
+    }
 
-	if (!pos)
-		q = g_list_append (q, mpeg);
-	else {
-		if (*playing_mpeg > pos) *playing_mpeg += 1;
-		q = g_list_insert (q, mpeg, (pos - 1));
-	}
-
-	if (q == NULL) {
-		dprintf (fd, "%c\nCannot %s on the list.\n%c\n",
-			 COMMAND_ERROR, !pos ? "append" : "insert", COMMAND_DELIM);
-		return NULL;
-	}
-
-	dprintf (fd, "%c\nFilename %s OK\n%c\n", COMMAND_OK, filename, COMMAND_DELIM);
-
-	return q;
+    dprintf(fd, "%c\nFilename %s OK\n%c\n", COMMAND_OK, filename, COMMAND_DELIM);
+    return q;
 }
 
-GList *command_remove (int fd, GList *queue, int pos, int *playing_mpeg)
+Evas_List *command_remove(int fd, Evas_List *queue, int pos)
 {
-	VTmpeg *mpeg;
-	GList *q = queue;
+    VTmpeg *mpeg;
+    Evas_List *q = queue;
 
-	/* não remove o video que está tocando */
-	if (*playing_mpeg == pos) {
-		dprintf (fd, "%c\nPosition busy.\n%c\n",
-			 COMMAND_ERROR, COMMAND_DELIM);
-		return NULL;
-	} else if (!pos) {
-		invalid_position:
-		dprintf (fd, "%c\nInvalid position.\n%c\n",
-			 COMMAND_ERROR, COMMAND_DELIM);
-		return NULL;
-	}
+    if(!pos) {
+        invalid_position:
+        dprintf(fd, "%c\nInvalid position.\n%c\n",
+             COMMAND_ERROR, COMMAND_DELIM);
+        return NULL;
+    }
 
-	mpeg = g_list_nth_data (q, (pos - 1));
-	if (mpeg) {
-		q = g_list_remove (q, mpeg);
-		free (mpeg);
-	} else goto invalid_position;
+    mpeg = evas_list_nth(q, (pos - 1));
+    if(mpeg) {
+        q = evas_list_remove(q, mpeg);
+        free(mpeg);
+    } else goto invalid_position;
 
-	if (q == NULL)
-		dprintf (fd, "%c\nCannot remove position %d\n%c\n",
-			 COMMAND_ERROR, pos, COMMAND_DELIM);
-	else
-		dprintf (fd, "%c\nRemove position %d OK\n%c\n",
-			 COMMAND_OK, pos, COMMAND_DELIM);
+    if(q == NULL)
+        dprintf(fd, "%c\nCannot remove position %d\n%c\n",
+             COMMAND_ERROR, pos, COMMAND_DELIM);
+    else
+        dprintf(fd, "%c\nRemove position %d OK\n%c\n",
+             COMMAND_OK, pos, COMMAND_DELIM);
 
-	if (*playing_mpeg > pos) *playing_mpeg -= 1;
-
-	return q;
+    return q;
 }

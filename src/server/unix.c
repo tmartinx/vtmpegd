@@ -1,253 +1,230 @@
 /*
  * $Id: unix.c,v 1.19 2001/11/13 18:31:33 alex Exp $
  *
- * (C) 2001 Void Technologies
- * Author: Alex Fiori <alex@void.com.br>
+ * Copyright (C) 2001 Void Technologies
+ * Copyright (C) 2005,2006 Alexandre Fiori and Arnaldo Pereira
+ *
+ * VTmpeg2 is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * VTmpeg2 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ *
  */
 
 #include "VTserver.h"
 
 static int   server_fd;
 static int   unix_command = 0;
-static int   playing_mpeg = -1;
-static GList *queue, *temp_queue;
+//static int   playing_mpeg = -1;
+static Evas_List *queue, *temp_queue;
 
 static void *unix_loop   (void *arg);
 static void  unix_client (int fd);
 
-static int unix_list_count (void)
-{
-	int count = 0;
-	GList *q = g_list_first (queue);
-
-	while ((q = g_list_next (q)) != NULL) count++;
-	return count;
-}
+static int unix_list_count(void) { return evas_list_count(queue); }
 
 /* guarda o nome do unix domain socket */
-char *unix_sockname (void)
+char *unix_sockname(void)
 {
-	int i = 0;
-	struct stat st;
-	static char temp[128], filename[128];
+    int i = 0;
+    struct stat st;
+    static char temp[128], filename[128];
 
-	while (*filename == '\0') {
-		memset (temp, 0, sizeof (temp));
-		snprintf (temp, sizeof (temp), "%s.%d", UNIX_PATH, i);
-		if (stat (temp, &st) < 0) {
-			strncpy (filename, temp, sizeof (filename));
-			break;
-		}
-
-		i++;
-	}
-
-	return filename;
-}
-
-/* cria o server (unix domain sockets)
-   pro client poder acessar o queue */
-int unix_server (void)
-{
-	int fd;
-	pthread_t th;
-	struct sockaddr_un s;
-
-	s.sun_family = AF_UNIX;
-	snprintf (s.sun_path, sizeof (s.sun_path), unix_sockname ()); 
-
-	if ((fd = socket (AF_UNIX, SOCK_STREAM, 0)) < 0) return 0;
-	if (bind (fd, (struct sockaddr *) &s, sizeof (s)) < 0) return 0;
-	if (listen (fd, 1) < 0) return 0;
-
-	chmod (unix_sockname (), 0666);
-
-	/* cria a lista */
-	temp_queue = queue = NULL;
-
-	server_fd = fd;
-	pthread_create (&th, NULL, unix_loop, NULL);
-
-	/* cria o symlink pra esse server */
-	unlink (UNIX_PATH);
-	symlink (unix_sockname (), UNIX_PATH);
-
-	return 1;
-}
-
-VTmpeg *unix_getvideo (void)
-{
-	VTmpeg *mpeg;
-	GList *q = g_list_first (queue);
-
-	thread_lock ();
-
-	if (playing_mpeg > unix_list_count ()) playing_mpeg = 0;
-
-	/* se não tiver o primeiro video... */
-	if (q == NULL) {
-		playing_mpeg = -1;
-		thread_unlock ();
-		return NULL;
-	}
-
-	/* se tiver, o playing_mpeg é 'pelo menos' zero */
-	mpeg = g_list_nth_data (q, playing_mpeg);
-	if (mpeg == NULL) {
-		playing_mpeg = 0;
-		thread_unlock ();
-		return NULL;
+    while(*filename == '\0') {
+        memset(temp, 0, sizeof(temp));
+        snprintf(temp, sizeof(temp), "%s.%d", UNIX_PATH, i);
+        if(stat(temp, &st) < 0) {
+            strncpy(filename, temp, sizeof(filename));
+            break;
+        }
+        i++;
     }
-#if 0
-	if (mpeg->mpeg == NULL) {
-		fulerzeu:
+    return filename;
+}
 
-		playing_mpeg = 0;
-		thread_unlock ();
-		return NULL;
-	} else 
-#endif
-        playing_mpeg++;
+/* cria o server(unix domain sockets)
+   pro client poder acessar o queue */
+int unix_server(void)
+{
+    int fd;
+    pthread_t th;
+    struct sockaddr_un s;
 
-	thread_unlock ();
+    s.sun_family = AF_UNIX;
+    snprintf(s.sun_path, sizeof(s.sun_path), unix_sockname()); 
 
-	return mpeg;
+    if((fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) return 0;
+    if(bind(fd, (struct sockaddr *) &s, sizeof(s)) < 0) return 0;
+    if(listen(fd, 1) < 0) return 0;
+
+    chmod(unix_sockname(), 0666);
+
+    /* cria a lista */
+    temp_queue = queue = NULL;
+
+    server_fd = fd;
+    pthread_create(&th, NULL, unix_loop, NULL);
+
+    /* cria o symlink pra esse server */
+    unlink(UNIX_PATH);
+    symlink(unix_sockname(), UNIX_PATH);
+
+    return 1;
+}
+
+VTmpeg *unix_getvideo(void)
+{
+    VTmpeg *mpeg = NULL;
+    Evas_List *q = evas_list_nth_list(queue, 0);
+    static int idx = 0;
+
+    thread_lock();
+
+    /* se não tiver o primeiro video... */
+    if(q == NULL) {
+        thread_unlock();
+        return NULL;
+    }
+
+    mpeg = evas_list_nth(q, idx);
+    if(mpeg)
+        idx++;
+
+    thread_unlock();
+    return mpeg;
 }
 
 /* informa o atual comando executado pelo queue */
-int unix_get_command (void)
+int unix_get_command(void)
 {
-	int command;
+    int command;
 
-	//thread_lock ();
-	command = unix_command;
-	unix_command = 0;
-	//thread_unlock ();
+    //thread_lock();
+    command = unix_command;
+    unix_command = 0;
+    //thread_unlock();
 
-	return command;
+    return command;
 }
 
 /* fecha o server e mata a lista */
-void unix_finish (void)
+void unix_finish(void)
 {
-	shutdown (server_fd, 2);
-	close (server_fd);
+    shutdown(server_fd, 2);
+    close(server_fd);
 
-	g_list_free (g_list_first (queue));
-	return;
+    evas_list_free(evas_list_nth_list(queue, 0));
+    return;
 }
 
 /* atende os clientes */
-void *unix_loop (void *arg)
+void *unix_loop(void *arg)
 {
-	fd_set fds;
-	int fd, cfd, len;
-	struct timeval tv;
-	struct sockaddr_un s;
+    fd_set fds;
+    int fd, cfd; 
+    socklen_t len;
+    struct timeval tv;
+    struct sockaddr_un s;
 
-	fd = server_fd;
+    fd = server_fd;
 
-	for (;;) {
-		FD_ZERO (&fds);
-		FD_SET (fd, &fds);
-		tv.tv_sec = 1; tv.tv_usec = 0;
+    for(;;) {
+        FD_ZERO(&fds);
+        FD_SET(fd, &fds);
+        tv.tv_sec = 1; tv.tv_usec = 0;
 
-		if (select (fd + 1, &fds, NULL, NULL, &tv)) {
-			thread_lock ();
+        if(select(fd + 1, &fds, NULL, NULL, &tv)) {
+            thread_lock();
 
-			len = sizeof (s);
-			memset (&s, 0, sizeof (s));
-			if ((cfd = accept (fd, (struct sockaddr *) &s, &len)) < 0)
-				perror ("accept"), exit (1);
+            len = sizeof(s);
+            memset(&s, 0, sizeof(s));
+            if((cfd = accept(fd, (struct sockaddr *) &s, &len)) < 0)
+                perror("accept"), exit(1);
 
-			/* trata os comandos */
-			unix_client (cfd);
+            /* trata os comandos */
+            unix_client(cfd);
 
-			shutdown (cfd, 2);
-			close (cfd);
+            shutdown(cfd, 2);
+            close(cfd);
 
-			thread_unlock ();
-		}
-	}
+            thread_unlock();
+        }
+    }
 
-	return NULL;
+    return NULL;
 }
 
-void unix_client (int fd)
+void unix_client(int fd)
 {
-	GList *q = NULL;
-	char temp[2048];
+    Evas_List *q       = NULL;
+    int        pos     = 0;
+    int        pos_aux = 0;
+    char       temp[2048];
+    char       filename[1024];
 
-	memset (temp, 0, sizeof (temp));
-	if (read (fd, temp, sizeof (temp)) < 0) return;
+    memset(temp, 0, sizeof(temp));
+    if(read(fd, temp, sizeof(temp)) < 0) return;
 
-	switch (atoi (temp)) {
-	case COMMAND_LIST:
-		command_list (fd, g_list_first (queue), playing_mpeg);
-		break;
+    switch(atoi(temp)) {
+        case COMMAND_LIST:
+            command_list(fd, evas_list_nth_list(queue, 0));
+            break;
 
-	case COMMAND_INSERT:
-	{
-		int pos;
-		char filename[1024];
+        case COMMAND_INSERT:
+            memset(filename, 0, sizeof(filename));
+            sscanf(temp + 2, "%[^];];%d\n", filename, &pos);
 
-		memset (filename, 0, sizeof (filename));
-		sscanf (temp + 2, "%[^];];%d\n", filename, &pos);
+            printf("%d -- %s\n\n", pos, filename);
+            q = command_insert(fd, queue, filename,
+                    pos, unix_list_count());
+            if(q != NULL) queue = evas_list_nth_list(q, 0);
+            break;
 
-		q = command_insert (fd, queue, filename,
-				    pos, &playing_mpeg, unix_list_count ());
-		if (q != NULL) queue = g_list_first (q);
-	}
-		break;
+        case COMMAND_REMOVE:
+            sscanf(temp + 2, "%d\n", &pos);
+            q = command_remove(fd, queue, pos);
+            if(q != NULL) {
+                unix_command = COMMAND_REMOVE;
+                queue = evas_list_nth_list(q, 0);
+            }
+            break;
 
-	case COMMAND_REMOVE:
-	{
-		int pos = 0;
+        case COMMAND_PLAY:
+            unix_command = COMMAND_PLAY;
+            break;
 
-		sscanf (temp + 2, "%d\n", &pos);
-		q = command_remove (fd, queue, pos, &playing_mpeg);
-		if (q != NULL) {
-			unix_command = COMMAND_REMOVE;
-			queue = g_list_first (q);
-		}
-	}
-		break;
+        case COMMAND_PAUSE:
+            unix_command = COMMAND_PAUSE;
+            break;
 
-	case COMMAND_PLAY:
-		unix_command = COMMAND_PLAY;
-		break;
-	
-	case COMMAND_PAUSE:
-		unix_command = COMMAND_PAUSE;
-		break;
-	
-	case COMMAND_STOP:
-		unix_command = COMMAND_STOP;
-		break;
+        case COMMAND_STOP:
+            unix_command = COMMAND_STOP;
+            break;
 
-	case COMMAND_NEXT:
-		unix_command = COMMAND_NEXT;
-		break;
-	
-	case COMMAND_PREV:
-	{
-		int temp;
+        case COMMAND_NEXT:
+            fprintf(stderr, "COMMAND_NEXT: TODO\n");
+            break;
 
-		if ((temp = playing_mpeg - 2) < 0) temp = unix_list_count ();
-		playing_mpeg = temp;
+        case COMMAND_PREV:
+            fprintf(stderr, "COMMAND_PREV: TODO\n");
+            break;
 
-		unix_command = COMMAND_NEXT;
-	}
-		break;
+        case COMMAND_MUTE:
+            unix_command = COMMAND_MUTE;
+            break;
 
-	case COMMAND_MUTE:
-		unix_command = COMMAND_MUTE;
-		break;
-
-	default:
-		dprintf (fd, "%c: Unknown command.\n%c\n",
-			 COMMAND_ERROR, COMMAND_DELIM);
-	}
-
-	return;
+        default:
+            dprintf(fd, "%c: Unknown command.\n%c\n",
+                    COMMAND_ERROR, COMMAND_DELIM);
+    }
+    return;
 }
