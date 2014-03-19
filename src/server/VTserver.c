@@ -56,7 +56,7 @@ int main(int argc, char **argv)
     signal(SIGPIPE, SIG_IGN);
 
     /* pra deixar o programa mais 'verboso', como diz
-       o zoado do thiago */
+       o bacana do Thiago */
     show_copyright();
 
     r = video_init(NULL, PROGRAM_DESCRIPTION, 720, 480, 0);
