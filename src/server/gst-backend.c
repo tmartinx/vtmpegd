@@ -118,7 +118,7 @@ gint md_gst_init(gint argc, gchar **argv, GtkWidget *win)
     g_signal_connect (play, "error", G_CALLBACK (cb_error), NULL);
 
     g_printerr("\nXXXXXXXX WARNING: don't forget to change videosink to xvimagesink XXXXXXXXXXXXXXX\n\n");
-    videosink = gst_element_factory_make("xvimagesink", "videosink");
+    videosink = gst_element_factory_make("ximagesink", "videosink");
     g_object_set(G_OBJECT(play), "video-sink", videosink, NULL);
 
     /* XXX choose what widget to put the video into. XXX
